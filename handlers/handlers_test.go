@@ -103,9 +103,9 @@ func TestHandleCreateDeck5CardNoShufflingSurprises(t *testing.T) {
 		t.Errorf("handler returned unexpected remaining count: got %v want %v", resp.Remaining, 5)
 	}
 
-	d, err := h.st.GetDeck(req.Context(), fakeUUID)
-	if err != nil {
-		t.Errorf("Service reported deck created, but error fetching it from storage")
+	d, found := h.st.GetDeck(req.Context(), fakeUUID)
+	if !found {
+		t.Errorf("Service reported deck created, but it seems to be missing from storage")
 	}
 
 	for i, code := range cards {
@@ -163,9 +163,9 @@ func TestHandleDeckCreate(t *testing.T) {
 				if err != nil {
 					t.Errorf("Cannot parse returned UUID when creating deck")
 				}
-				deck, err := h.st.GetDeck(ctx, id)
-				if err != nil {
-					t.Errorf("Service reported deck created, but error fetching it from storage")
+				deck, found := h.st.GetDeck(ctx, id)
+				if !found {
+					t.Errorf("Service reported deck created, but it seems to be missing from storage")
 				}
 
 				if deck.Shuffled != tc.expectedShuffled {

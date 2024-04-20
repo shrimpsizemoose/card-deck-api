@@ -137,8 +137,8 @@ func (h *Handler) HandleOpenDeck(w http.ResponseWriter, r *http.Request, deckIDP
 		return
 	}
 
-	d, err := h.st.GetDeck(r.Context(), deckID)
-	if err != nil {
+	d, found := h.st.GetDeck(r.Context(), deckID)
+	if !found {
 		http.Error(w, fmt.Sprintf("Deck not found: %s", err), http.StatusNotFound)
 		return
 	}
@@ -178,9 +178,9 @@ func (h *Handler) HandleDrawCards(w http.ResponseWriter, r *http.Request, deckID
 	}
 
 	ctx := r.Context()
-	d, err := h.st.GetDeck(ctx, deckID)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Deck not found: %v", err), http.StatusNotFound)
+	d, found := h.st.GetDeck(ctx, deckID)
+	if !found {
+		http.Error(w, fmt.Sprintf("Deck not found"), http.StatusNotFound)
 		return
 	}
 
