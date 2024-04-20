@@ -186,7 +186,7 @@ make @run-docker
 * For external storage one should use [singleflight](https://pkg.go.dev/golang.org/x/sync/singleflight) to help with parallel requests
 * Right now it would be annoying to add new cards or change deck types, that would require some refactoring if such thing is needed
 * Would probably check context handling, should add some timeouts and such, I've added it as afterthought once I made the storage package
-* I would use [uber-go/zap](https://github.com/uber-go/zap) instead of logrus as it seems to be faster
+* I wanted to use stdlib as much as possible with exception of logrus, but for "realworld" logging I personally would probably use [uber-go/zap](https://github.com/uber-go/zap) instead of logrus. But I think logrus is more commonly used though (maybe?)
 
 ### Extending storage
 
