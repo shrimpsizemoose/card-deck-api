@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"encoding/json"
@@ -9,6 +9,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+
+	"deck-of-cards/deck"
+	"deck-of-cards/storage"
 )
 
 type DeckResponse struct {
@@ -18,32 +21,45 @@ type DeckResponse struct {
 }
 
 type OpenDeckResponse struct {
-	DeckID    string `json:"deck_id"`
-	Shuffled  bool   `json:"shuffled"`
-	Remaining int    `json:"remaining"`
-	Cards     []Card `json:"cards"`
+	DeckID    string      `json:"deck_id"`
+	Shuffled  bool        `json:"shuffled"`
+	Remaining int         `json:"remaining"`
+	Cards     []deck.Card `json:"cards"`
 }
 
 type DrawResponse struct {
-	Cards []Card `json:"cards"`
+	Cards []deck.Card `json:"cards"`
 }
 
-func handleDeck(storage DeckStorage, w http.ResponseWriter, r *http.Request) {
+type Handler struct {
+	st      storage.DeckStorage
+	uuidGen func() uuid.UUID
+}
+
+func NewHandler(st storage.DeckStorage) *Handler {
+	return &Handler{
+		st: st,
+		uuidGen: func() uuid.UUID {
+			return uuid.New()
+		},
+	}
+}
+
+// routes all requests to /decks/ endpoint and picks correct handler
+func (h *Handler) HandleDeck(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/decks/")
-	logrus.WithField("path", path).Debug("New request")
 	pathParts := strings.Split(path, "/")
+	log := logrus.WithFields(logrus.Fields{"path": path, "pathParts": pathParts, "endpoint": "handleDeck"})
+	log.Debug("New request")
 
 	if len(pathParts) == 1 && r.Method == "POST" {
-		logrus.Debug("Creating deck")
-		handleCreateDeck(storage, w, r)
+		log.Debug("Creating deck")
+		h.HandleCreateDeck(w, r)
 		return
 	}
 	if len(pathParts) == 1 && r.Method == "GET" {
-		logrus.WithFields(logrus.Fields{
-			"path":      path,
-			"pathParts": pathParts,
-		}).Debug("Opening deck")
-		handleOpenDeck(storage, w, r, pathParts[0])
+		log.Debug("Opening deck")
+		h.HandleOpenDeck(w, r, pathParts[0])
 		return
 	}
 	if len(pathParts) == 1 && r.Method != "GET" && r.Method != "POST" {
@@ -52,11 +68,8 @@ func handleDeck(storage DeckStorage, w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(pathParts) == 2 && pathParts[1] == "draw" && r.Method == "POST" {
-		logrus.WithFields(logrus.Fields{
-			"path":      path,
-			"pathParts": pathParts,
-		}).Debug("Drawing from deck")
-		handleDrawCards(storage, w, r, pathParts[0])
+		log.Debug("Drawing from deck")
+		h.HandleDrawCards(w, r, pathParts[0])
 		return
 	}
 	if len(pathParts) == 2 && pathParts[1] == "draw" && r.Method == "GET" {
@@ -66,29 +79,48 @@ func handleDeck(storage DeckStorage, w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func handleCreateDeck(storage DeckStorage, w http.ResponseWriter, r *http.Request) {
+func parseCardCodes(cardsParam string) []string {
+	if cardsParam == "" {
+		return nil
+	}
+	tokens := strings.Split(cardsParam, ",")
+	for i, token := range tokens {
+		tokens[i] = strings.TrimSpace(token)
+	}
+	return tokens
+}
+
+// creates the deck and saves it in the DeckStorage
+func (h *Handler) HandleCreateDeck(w http.ResponseWriter, r *http.Request) {
+	log := logrus.WithFields(logrus.Fields{"endpoint": "handleCreateDeck"})
 
 	shuffle := r.URL.Query().Get("shuffle") == "true"
 	cardsParam := r.URL.Query().Get("cards")
 	cardCodes := parseCardCodes(cardsParam)
-	logrus.Debugf("Request to create a new deck shuffle=%v cards=%v", shuffle, cardsParam)
+	log.Debugf("Request to create a new deck shuffle=%v cards=%v", shuffle, cardsParam)
 
-	id := generateUUID()
-	deck := NewDeck(id, shuffle, cardCodes)
-	storage.SaveDeck(*deck)
-	logrus.WithField("deck_id", deck.ID).Debugf("Saving new deck")
+	id := h.uuidGen()
+	d := deck.NewDeck(id, shuffle, cardCodes)
+	h.st.SaveDeck(r.Context(), *d)
+	log.WithField("deck_id", d.ID).Debugf("Saving new deck")
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Location", "/decks/"+d.ID.String())
 	w.WriteHeader(http.StatusCreated)
 
 	response := DeckResponse{
-		DeckID:    deck.ID.String(),
-		Shuffled:  deck.Shuffled,
-		Remaining: len(deck.Cards),
+		DeckID:    d.ID.String(),
+		Shuffled:  d.Shuffled,
+		Remaining: len(d.Cards),
 	}
 	json.NewEncoder(w).Encode(response)
 }
 
-func handleOpenDeck(storage DeckStorage, w http.ResponseWriter, r *http.Request, deckIDParam string) {
+// fetches the deck from the DeckStore and opens it
+func (h *Handler) HandleOpenDeck(w http.ResponseWriter, r *http.Request, deckIDParam string) {
+	log := logrus.WithFields(logrus.Fields{
+		"endpoint": "handleOpenDeck",
+		"deck_id":  deckIDParam,
+	})
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
@@ -105,25 +137,30 @@ func handleOpenDeck(storage DeckStorage, w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	deck, err := storage.GetDeck(deckID)
+	d, err := h.st.GetDeck(r.Context(), deckID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Deck not found: %s", err), http.StatusNotFound)
 		return
 	}
 
-	logrus.WithField("deck_id", deck.ID).Debug("Opening deck")
+	log.Debug("Opening deck")
 
 	response := OpenDeckResponse{
 		DeckID:    deckID.String(),
-		Shuffled:  deck.Shuffled,
-		Remaining: len(deck.Cards),
-		Cards:     deck.Cards,
+		Shuffled:  d.Shuffled,
+		Remaining: len(d.Cards),
+		Cards:     d.Cards,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
-func handleDrawCards(storage DeckStorage, w http.ResponseWriter, r *http.Request, deckIDParam string) {
+// fetches the deck from the DeckStorage, draws cards, updates deck
+func (h *Handler) HandleDrawCards(w http.ResponseWriter, r *http.Request, deckIDParam string) {
+	log := logrus.WithFields(logrus.Fields{
+		"endpoint": "handleDrawCards",
+		"deck_id":  deckIDParam,
+	})
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
@@ -140,7 +177,8 @@ func handleDrawCards(storage DeckStorage, w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	deck, err := storage.GetDeck(deckID)
+	ctx := r.Context()
+	d, err := h.st.GetDeck(ctx, deckID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Deck not found: %v", err), http.StatusNotFound)
 		return
@@ -152,15 +190,15 @@ func handleDrawCards(storage DeckStorage, w http.ResponseWriter, r *http.Request
 		http.Error(w, "Invalid number of cards", http.StatusBadRequest)
 		return
 	}
-	if numCards > len(deck.Cards) {
+	if numCards > len(d.Cards) {
 		http.Error(w, "Not enough cards in the deck", http.StatusBadRequest)
 		return
 	}
 
-	logrus.WithField("deck_id", deck.ID).Debugf("Drawing count=%v cards from deck", numCards)
-	drawnCards := deck.Draw(numCards)
-	storage.UpdateDeck(deck)
-	logrus.WithField("deck_id", deck.ID).Debugf("Deck updated, new card count=%v", len(deck.Cards))
+	log.Debugf("Drawing count=%v cards from deck", numCards)
+	drawnCards := d.Draw(numCards)
+	h.st.UpdateDeck(ctx, d)
+	log.Debugf("Deck updated, new card count=%v", len(d.Cards))
 
 	response := DrawResponse{Cards: drawnCards}
 	w.Header().Set("Content-Type", "application/json")

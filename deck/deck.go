@@ -1,4 +1,4 @@
-package main
+package deck
 
 import (
 	"math/rand"
@@ -64,7 +64,7 @@ func generateFullDeck() []Card {
 			cards = append(cards, Card{
 				Value: value,
 				Suit:  suit,
-				Code:  value[:1] + suit[:1],
+				Code:  value + suit[:1],
 			})
 		}
 	}

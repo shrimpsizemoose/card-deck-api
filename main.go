@@ -6,6 +6,9 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
+
+	"deck-of-cards/handlers"
+	"deck-of-cards/storage"
 )
 
 func init() {
@@ -21,15 +24,17 @@ func main() {
 		logrus.Debug("Logging debug output, run without DEBUG=1 to disable")
 	}
 
-	var storage DeckStorage
-	storage = NewInMemoryStorage()
+	var st storage.DeckStorage
+	st = storage.NewInMemoryStorage()
+
+	h := handlers.NewHandler(st)
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		logrus.Fatal("PORT environment variable is not set")
 	}
 
-	http.HandleFunc("/decks/", func(w http.ResponseWriter, r *http.Request) { handleDeck(storage, w, r) })
+	http.HandleFunc("/decks/", func(w http.ResponseWriter, r *http.Request) { h.HandleDeck(w, r) })
 	logrus.Infof("Listening on port %s", port)
 	http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 }
