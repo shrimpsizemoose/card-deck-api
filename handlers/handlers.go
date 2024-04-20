@@ -45,40 +45,6 @@ func NewHandler(st storage.DeckStorage) *Handler {
 	}
 }
 
-// routes all requests to /decks/ endpoint and picks correct handler
-func (h *Handler) HandleDeck(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimPrefix(r.URL.Path, "/decks/")
-	pathParts := strings.Split(path, "/")
-	log := logrus.WithFields(logrus.Fields{"path": path, "pathParts": pathParts, "endpoint": "handleDeck"})
-	log.Debug("New request")
-
-	if len(pathParts) == 1 && r.Method == "POST" {
-		log.Debug("Creating deck")
-		h.HandleCreateDeck(w, r)
-		return
-	}
-	if len(pathParts) == 1 && r.Method == "GET" {
-		log.Debug("Opening deck")
-		h.HandleOpenDeck(w, r, pathParts[0])
-		return
-	}
-	if len(pathParts) == 1 && r.Method != "GET" && r.Method != "POST" {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	if len(pathParts) == 2 && pathParts[1] == "draw" && r.Method == "POST" {
-		log.Debug("Drawing from deck")
-		h.HandleDrawCards(w, r, pathParts[0])
-		return
-	}
-	if len(pathParts) == 2 && pathParts[1] == "draw" && r.Method == "GET" {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-	}
-
-	http.NotFound(w, r)
-}
-
 func parseCardCodes(cardsParam string) []string {
 	if cardsParam == "" {
 		return nil
@@ -93,6 +59,10 @@ func parseCardCodes(cardsParam string) []string {
 // creates the deck and saves it in the DeckStorage
 func (h *Handler) HandleCreateDeck(w http.ResponseWriter, r *http.Request) {
 	log := logrus.WithFields(logrus.Fields{"endpoint": "handleCreateDeck"})
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
 	shuffle := r.URL.Query().Get("shuffle") == "true"
 	cardsParam := r.URL.Query().Get("cards")
@@ -116,7 +86,8 @@ func (h *Handler) HandleCreateDeck(w http.ResponseWriter, r *http.Request) {
 }
 
 // fetches the deck from the DeckStore and opens it
-func (h *Handler) HandleOpenDeck(w http.ResponseWriter, r *http.Request, deckIDParam string) {
+func (h *Handler) HandleOpenDeck(w http.ResponseWriter, r *http.Request) {
+	deckIDParam := r.PathValue("id")
 	log := logrus.WithFields(logrus.Fields{
 		"endpoint": "handleOpenDeck",
 		"deck_id":  deckIDParam,
@@ -156,7 +127,8 @@ func (h *Handler) HandleOpenDeck(w http.ResponseWriter, r *http.Request, deckIDP
 }
 
 // fetches the deck from the DeckStorage, draws cards, updates deck
-func (h *Handler) HandleDrawCards(w http.ResponseWriter, r *http.Request, deckIDParam string) {
+func (h *Handler) HandleDrawCards(w http.ResponseWriter, r *http.Request) {
+	deckIDParam := r.PathValue("id")
 	log := logrus.WithFields(logrus.Fields{
 		"endpoint": "handleDrawCards",
 		"deck_id":  deckIDParam,

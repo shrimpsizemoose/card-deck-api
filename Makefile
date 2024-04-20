@@ -4,7 +4,7 @@ APP=toggl-card-service
 VERSION=0.1.0
 PORT=8088
 
-SOURCES = *.go
+SOURCES = *.go */*.go
 EXE = card-deck-api
 
 SERVICE_TAG=${REGISTRY}/${NAMESPACE}/${APP}:${VERSION}
@@ -18,7 +18,13 @@ SERVICE_TAG=${REGISTRY}/${NAMESPACE}/${APP}:${VERSION}
 	docker run -e PORT=${PORT} ${SERVICE_TAG}
 
 @test: $(SOURCES)
-	go test -v .
+	go test ./...
+
+@test-verbose: $(SOURCES)
+	go test -v ./...
+
+@test-race: $(SOURCES)
+	go test -race -v ./...
 
 @run: $(SOURCES)
 	PORT=${PORT} go run .
@@ -26,20 +32,19 @@ SERVICE_TAG=${REGISTRY}/${NAMESPACE}/${APP}:${VERSION}
 @build: $(SOURCES)
 	go build -o ${EXE} .
 
-@test-utils: $(SOURCES)
-	go test -v . 
-
 local-debug-run: $(SOURCES)
 	DEBUG=1 go run .
 
-local-http-create-deck:
+lint:
+	golangci-lint run ./...
+
+local-http-create-shuffled-deck:
 	curl -X POST http://localhost:${PORT}/decks/?shuffle=true
 
 local-http-open-deck-jq:
 	@echo specify ID in env DECK_ID or directly hardcode like:
 	@echo 'curl -X GET http://localhost:${PORT}/decks/1b4a8074-3c3e-4d0b-bfd5-85ff38ea9d00'
 	curl -X GET http://localhost:${PORT}/decks/${DECK_ID} | jq .
-
 
 local-http-draw-deck-jq:
 	@echo specify ID in env DECK_ID or directly hardcode like:

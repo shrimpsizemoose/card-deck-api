@@ -34,7 +34,10 @@ func main() {
 		logrus.Fatal("PORT environment variable is not set")
 	}
 
-	http.HandleFunc("/decks/", func(w http.ResponseWriter, r *http.Request) { h.HandleDeck(w, r) })
+	http.HandleFunc("POST /decks/", h.HandleCreateDeck)
+	http.HandleFunc("GET /decks/{id}", h.HandleOpenDeck)
+	http.HandleFunc("POST /decks/{id}/draw", h.HandleDrawCards)
+
 	logrus.Infof("Listening on port %s", port)
 	http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 }

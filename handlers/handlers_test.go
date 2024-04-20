@@ -12,6 +12,7 @@ import (
 
 	"deck-of-cards/deck"
 	"deck-of-cards/storage"
+
 	"github.com/google/uuid"
 )
 
@@ -127,6 +128,7 @@ func TestHandleDeckCreate(t *testing.T) {
 		expectedShuffled bool
 		expectedNumCards int
 	}{
+		{"Method Not Allowed", "GET", "/decks/", http.StatusMethodNotAllowed, false, 0},
 		{"Can create shuffled deck of 5 cards", "POST", "/decks/?shuffle=true&cards=AS,KD,QH,2C,3S", http.StatusCreated, true, 5},
 		{"Can create unshuffled deck of 4 cards", "POST", "/decks/?shuffle=false&cards=AS,KD,QH,2C", http.StatusCreated, false, 4},
 		{"Can create implicitly unshuffled deck of 3 cards", "POST", "/decks/?cards=AS,KD,QH", http.StatusCreated, false, 3},
@@ -139,7 +141,7 @@ func TestHandleDeckCreate(t *testing.T) {
 			requestBody := bytes.NewBuffer(nil)
 			req, _ := http.NewRequest(tc.method, tc.path, requestBody)
 			rr := httptest.NewRecorder()
-			handler := http.HandlerFunc(h.HandleDeck)
+			handler := http.HandlerFunc(h.HandleCreateDeck)
 
 			handler.ServeHTTP(rr, req)
 			ctx, cancel := context.WithTimeout(req.Context(), time.Second)
@@ -179,23 +181,79 @@ func TestHandleDeckCreate(t *testing.T) {
 	}
 }
 
-func TestHandleDrawCards(t *testing.T) {
+func TestHandleOpenDeck(t *testing.T) {
 
 	tests := []struct {
 		name           string
 		method         string
 		deckID         string
-		numCards       string
 		expectedStatus int
 	}{
-		{"Method Not Allowed", "GET", fakeUUID.String(), "1", http.StatusMethodNotAllowed},
-		{"Missing Deck ID", "POST", "", "1", http.StatusBadRequest},
-		{"Invalid Deck ID", "POST", "invalid-uuid", "1", http.StatusBadRequest},
-		{"Deck Not Found", "POST", uuid.New().String(), "1", http.StatusNotFound},
-		{"Invalid Number of Cards", "POST", fakeUUID.String(), "abc", http.StatusBadRequest},
-		{"Draw Zero Cards", "POST", fakeUUID.String(), "0", http.StatusBadRequest},
-		{"More Cards Than Available", "POST", fakeUUID.String(), "10", http.StatusBadRequest},
-		{"Successful Draw", "POST", fakeUUID.String(), "2", http.StatusOK},
+		{"Method Not Allowed", "POST", fakeUUID.String(), http.StatusMethodNotAllowed},
+		{"Missing Deck ID", "GET", "", http.StatusBadRequest},
+		{"Invalid Deck ID", "GET", "invalid-uuid", http.StatusBadRequest},
+		{"Deck Not Found", "GET", uuid.New().String(), http.StatusNotFound},
+		{"Successful Open", "GET", fakeUUID.String(), http.StatusOK},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			h := NewHandler(storage.NewInMemoryStorage())
+			mock := deck.NewDeck(fakeUUID, false, []string{"AS", "KD", "QH", "2C"})
+			h.st.SaveDeck(ctx, *mock)
+			expectedShuffled := mock.Shuffled
+			expectedRemaining := len(mock.Cards)
+
+			requestBody := bytes.NewBuffer(nil)
+			req, _ := http.NewRequestWithContext(ctx, tc.method, "/decks/"+tc.deckID, requestBody)
+			rr := httptest.NewRecorder()
+			handler := http.HandlerFunc(h.HandleOpenDeck)
+			req.SetPathValue("id", tc.deckID)
+
+			handler.ServeHTTP(rr, req)
+
+			if rr.Code != tc.expectedStatus {
+				t.Errorf("expected status %v, got %v", tc.expectedStatus, rr.Code)
+			}
+
+			if tc.expectedStatus == http.StatusOK {
+				var response OpenDeckResponse
+				json.NewDecoder(rr.Body).Decode(&response)
+				if response.DeckID != tc.deckID {
+					t.Errorf("got back wrong DeckID somehow, expected %s, got %s", tc.deckID, response.DeckID)
+				}
+				if response.Remaining != expectedRemaining {
+					t.Errorf("expected %d cards, got %d", expectedRemaining, response.Remaining)
+				}
+				if response.Shuffled != expectedShuffled {
+					t.Errorf("shuffled state mismatch: expected %v, got %v", expectedShuffled, response.Shuffled)
+				}
+			}
+		})
+	}
+}
+
+func TestHandleDrawCards(t *testing.T) {
+	tests := []struct {
+		name             string
+		method           string
+		deckID           string
+		numCards         string
+		expectedStatus   int
+		expectedNumCards int
+	}{
+		{"Method Not Allowed", "GET", fakeUUID.String(), "1", http.StatusMethodNotAllowed, 0},
+		{"Missing Deck ID", "POST", "", "1", http.StatusBadRequest, 0},
+		{"Invalid Deck ID", "POST", "invalid-uuid", "1", http.StatusBadRequest, 0},
+		{"Deck Not Found", "POST", uuid.New().String(), "1", http.StatusNotFound, 0},
+		{"Invalid Number of Cards", "POST", fakeUUID.String(), "abc", http.StatusBadRequest, 0},
+		{"Draw Zero Cards", "POST", fakeUUID.String(), "0", http.StatusBadRequest, 0},
+		{"More Cards Than Available", "POST", fakeUUID.String(), "10", http.StatusBadRequest, 0},
+		{"Successful Draw 3 Cards", "POST", fakeUUID.String(), "3", http.StatusOK, 3},
+		{"Successful Draw 2 Cards", "POST", fakeUUID.String(), "2", http.StatusOK, 2},
 	}
 
 	for _, tc := range tests {
@@ -210,7 +268,8 @@ func TestHandleDrawCards(t *testing.T) {
 			requestBody := bytes.NewBuffer(nil)
 			req, _ := http.NewRequestWithContext(ctx, tc.method, "/decks/"+tc.deckID+"/draw?count="+tc.numCards, requestBody)
 			rr := httptest.NewRecorder()
-			handler := http.HandlerFunc(h.HandleDeck)
+			handler := http.HandlerFunc(h.HandleDrawCards)
+			req.SetPathValue("id", tc.deckID)
 
 			handler.ServeHTTP(rr, req)
 
@@ -221,8 +280,8 @@ func TestHandleDrawCards(t *testing.T) {
 			if tc.expectedStatus == http.StatusOK {
 				var response DrawResponse
 				json.NewDecoder(rr.Body).Decode(&response)
-				if len(response.Cards) != 2 {
-					t.Errorf("expected 2 cards, got %d", len(response.Cards))
+				if len(response.Cards) != tc.expectedNumCards {
+					t.Errorf("expected %d cards, got %d", tc.expectedNumCards, len(response.Cards))
 				}
 			}
 		})
