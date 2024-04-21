@@ -33,7 +33,7 @@ SERVICE_TAG=${REGISTRY}/${NAMESPACE}/${APP}:${VERSION}
 	go build -o ${EXE} .
 
 local-debug-run: $(SOURCES)
-	DEBUG=1 go run .
+	PORT=${PORT} DEBUG=1 go run .
 
 lint:
 	golangci-lint run ./...

@@ -19,7 +19,7 @@ DECK_ID=66960c43-c727-4e33-82da-ede4f204f484 make local-http-open-deck-jq
 DECK_ID=66960c43-c727-4e33-82da-ede4f204f484 make local-http-draw-deck-jq
 ```
 
-Note that DECK_ID in the last two commands is the one returned by the first one. If you don't have jq installed, the last two commands can be used as `local-http-open-deck` and `local-http-draw-deck` correspondingly
+Note that `DECK_ID` in the last two commands is the one returned by the first one. If you don't have jq installed, the last two commands can be used as `local-http-open-deck` and `local-http-draw-deck` correspondingly
 
 ## Card deck
 
@@ -67,7 +67,7 @@ When no parameters are provided, returns a deck consisting of 52 cards in sequen
 ```json
 {
     "deck_id": "118a1a98-2fd2-44d9-83d2-b34fe4bd5230",
-    "shuffled": "false",
+    "shuffled": "true",
     "remaining": 5,
 }
 ```
@@ -131,7 +131,7 @@ The deck_id is provided as a path parameter, for example
 POST /decks/e13aaa48-2f62-4457-8c87-790cd856d536/draw?count=5
 ```
 
-If the deck ID is wrong or the deck is not found, it would error with some status code (400, 404, 405) depending on the situation
+If the deck ID is wrong or the deck is not found, or something else is wrong, it would error with some status code (400, 404, 405) depending on the situation
 
 #### Example Success Response for `POST /decks/{uuid}/draw?count=N`
 
@@ -191,9 +191,9 @@ make @docker-build
 make @run
 ```
 
-You can use the provided Makefile file to change PORT. Set env variable DEBUG=1 to enable debug output
+You can use the provided Makefile file to change PORT. Set env variable DEBUG=1 to enable debug logging or use `make local-debug-run`
 
-### Running in Docker
+### Building and running in Docker locally
 
 ```bash
 make @docker-build
