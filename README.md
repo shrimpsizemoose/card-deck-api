@@ -19,7 +19,7 @@ DECK_ID=66960c43-c727-4e33-82da-ede4f204f484 make local-http-open-deck-jq
 DECK_ID=66960c43-c727-4e33-82da-ede4f204f484 make local-http-draw-deck-jq
 ```
 
-If you don't have jq installed, the last two commands can be used as `local-http-open-deck` and `local-http-draw-deck` correspondingly
+Note that DECK_ID in the last two commands is the one returned by the first one. If you don't have jq installed, the last two commands can be used as `local-http-open-deck` and `local-http-draw-deck` correspondingly
 
 ## Card deck
 
