@@ -23,9 +23,9 @@ If you don't have jq installed, the last two commands can be used as `local-http
 
 ## Card deck
 
-All cards are assumed to be from the deck of standard French 52-cards deck. It includes thirteen ranks in four suits: (♣), diamonds (♦), hearts (♥) and spades (♠). Jocker cards are not supported.
+All cards are assumed to be from the deck of standard French 52-card deck. It includes thirteen ranks in four suits: (♣), diamonds (♦), hearts (♥), and spades (♠). Joker cards are not supported.
 
-For simplicity, all cards are coded with 2-3 characters string, like "KD" for "King of Diamonds", "AS" for "Ace of Spades", "10C" for "Ten of Clubs", and so on. When creating a card, user can provide subset of card codes, but unknown codes will be ignored.
+For simplicity, all cards are coded with a 2-3 characters string, like "KD" for "King of Diamonds", "AS" for "Ace of Spades", "10C" for "Ten of Clubs", and so on. The user can provide a subset of card codes when creating a card, but unknown codes will be ignored.
 
 ## Endpoints
 
@@ -35,7 +35,7 @@ API provides parameters to Create card decks and Open and Draw cards from existi
 
 **NB the end slash** in path.
 
-Creates a Deck of cards. By default all 52 cards are used and the deck is created sequentially using standard [Preferans](https://en.wikipedia.org/wiki/Preferans) progression: ♠♣♦♥, that is "AS, 2S, 3S, ...QS, KS, AC, 2C, 3C, ...". 
+Creates a Deck of cards. By default, all 52 cards are used and the deck is created sequentially using standard [Preferans](https://en.wikipedia.org/wiki/Preferans) progression: ♠<♣<♦<♥, that is "AS, 2S, 3S, ...QS, KS, AC, 2C, 3C, ...". 
 
 **URL Parameters for `POST /decks/`**
 
@@ -44,7 +44,7 @@ Creates a Deck of cards. By default all 52 cards are used and the deck is create
 | shuffle   | no       | whether the deck should be shuffled on creation          |
 | cards     | no       | optional list of card keys to use when creating the deck |
 
-When no parameters provided, returns a deck consisting of 52 card in sequential order
+When no parameters are provided, returns a deck consisting of 52 cards in sequential order
 
 #### Example Success Response from `POST /decks/`
 
@@ -58,17 +58,17 @@ When no parameters provided, returns a deck consisting of 52 card in sequential 
 }
 ```
 
-Resulting deck is stored in DeckStorage and can be accessed using returned ID
+The resulting deck is stored in DeckStorage and can be accessed using the returned ID
 
 ### Open Deck `GET /decks/{uuid}`
 
-This opens the deck given the Deck ID and returns deck properties along with its cards. The deck_id is provided as path parameter, for example
+This opens the deck given the Deck ID and returns deck properties and cards. The deck_id is provided as a path parameter, for example
 
 ```text
 GET /decks/e13aaa48-2f62-4457-8c87-790cd856d536
 ```
 
-If the deck ID is wrong or the deck is not found, it would error with 400/404 depending on the sitation
+If the deck ID is wrong or the deck is not found, it would error with some status code (400, 404, 405) depending on the situation
 
 #### Example Success Response from `GET /decks/{uuid}`
 
@@ -99,7 +99,7 @@ If the deck ID is wrong or the deck is not found, it would error with 400/404 de
 }
 ```
 
-This request does not alter the deck and can be used for RO-access for the deck
+This request does not alter the deck and can be used for RO access to the deck
 
 ### Draw a card from Deck `POST /decks/{uuid}/draw?count=N`
 
@@ -109,15 +109,15 @@ This opens the deck given the Deck ID and returns deck properties along with its
 
 | Parameter | Required | Description                                             |
 | --------- | -------- | ------------------------------------------------------- |
-| count     | yes      | amount of card to draw from the deck. Should be integer |
+| count     | yes      | amount of cards to draw from the deck. Should be integer |
 
-The deck_id is provided as path parameter, for example
+The deck_id is provided as a path parameter, for example
 
 ```text
 POST /decks/e13aaa48-2f62-4457-8c87-790cd856d536/draw?count=5
 ```
 
-If the deck ID is wrong or the deck is not found, it would error with some status code (400, 404, 405) depending on the sitation
+If the deck ID is wrong or the deck is not found, it would error with some status code (400, 404, 405) depending on the situation
 
 #### Example Success Response for `POST /decks/{uuid}/draw?count=N`
 
@@ -155,7 +155,7 @@ If the deck ID is wrong or the deck is not found, it would error with some statu
 }
 ```
 
-This request updates the deck: after the draw the deck would contain `count` less cards.
+This request updates the deck: after the draw, the deck would contain `count` fewer cards.
 
 ## Buliding
 
@@ -188,14 +188,14 @@ make @run-docker
 
 ## TODO (What would I do if I had more time)
 
-* I'm quite fond of Golang standard library, but I think some lib for marshmalling would be helpful here, so I'd probably use _whatever the team is using_ or gin/negroni/chi
-* Ratelimit would be nice if the service expected to handle some high trafic (let's say 100+ RPS), and there should be way to manage storage timeouts
+* I'm quite fond of Golang standard library, but I think some lib for marshaling would be helpful here, so I'd probably use _whatever the team is using_ or gin/negroni/chi
+* Ratelimit would be nice if the service expected to handle some high traffic (let's say 100+ RPS), and there should be a way to manage storage timeouts
 * More tests would be always nice to have, especially if external storage is used
-* Storage should happen in external system, that would help with state management and can help with consistency
+* Storage should happen in an external system, which would help with state management and can help with consistency
 * For external storage one should use [singleflight](https://pkg.go.dev/golang.org/x/sync/singleflight) to help with parallel requests
-* Right now it would be annoying to add new cards or change deck types, that would require some refactoring if such thing is needed. Having smaller deck would work fine with current service, but adding different cards for example for [mus](https://en.wikipedia.org/wiki/Mus_(card_game)) would be challenging
-* Would probably check context handling, should add some timeouts and such, I've added it as afterthought once I made the storage package
-* I wanted to use stdlib as much as possible with exception of logrus, but for "realworld" logging I personally would probably use [uber-go/zap](https://github.com/uber-go/zap) instead of logrus. But I think logrus is more commonly used though (maybe?)
+* It would be annoying to add new cards or change deck types, which would require some refactoring if such a thing is needed. Having a smaller deck would work fine with the current service, but adding different cards for example for [mus](https://en.wikipedia.org/wiki/Mus_(card_game)) would be challenging
+* Would probably use more context handling, adding timeouts and such. I've added it after once I made the storage package
+* I wanted to use stdlib as much as possible with the exception of logrus, but for "real-world" logging I would probably use [uber-go/zap](https://github.com/uber-go/zap) instead of logrus. I think logrus is more commonly used though (maybe?)
 
 ### Extending storage
 
@@ -219,4 +219,4 @@ func (s *RedisStorage) GetDeck(ctx context.Context, id uuid.UUID) (Deck, bool) {
 
 ### Adding new handlers
 
-Add handlers to the [handlers.go](./handlers/handlers.go) file, and registered in [main.go](./main.go), and any deck logic should go into [deck.go](./deck/deck.go)
+Add handlers to the [handlers.go](./handlers/handlers.go) file, and register in [main.go](./main.go), and any deck logic should go into [deck.go](./deck/deck.go)
