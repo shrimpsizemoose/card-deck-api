@@ -86,22 +86,22 @@ func TestHandleCreateDeck5CardNoShufflingSurprises(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 	}
 
-	var resp DeckResponse
-	err = json.Unmarshal(rr.Body.Bytes(), &resp)
+	var response DeckResponse
+	err = json.Unmarshal(rr.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatal("Failed to unmarshal response:", err)
 	}
 
-	if resp.DeckID != fakeUUID.String() {
-		t.Errorf("handler returned unexpected deck_id: got %v want %v", resp.DeckID, fakeUUID.String())
+	if response.DeckID != fakeUUID.String() {
+		t.Errorf("handler returned unexpected deck_id: got %v want %v", response.DeckID, fakeUUID.String())
 	}
 
-	if resp.Shuffled {
-		t.Errorf("handler returned unexpected shuffle status: got %v want %v", resp.Shuffled, false)
+	if response.Shuffled {
+		t.Errorf("handler returned unexpected shuffle status: got %v want %v", response.Shuffled, false)
 	}
 
-	if resp.Remaining != 5 {
-		t.Errorf("handler returned unexpected remaining count: got %v want %v", resp.Remaining, 5)
+	if response.Remaining != 5 {
+		t.Errorf("handler returned unexpected remaining count: got %v want %v", response.Remaining, 5)
 	}
 
 	d, found := h.st.GetDeck(req.Context(), fakeUUID)
@@ -155,7 +155,9 @@ func TestHandleDeckCreate(t *testing.T) {
 
 			if tc.expectedStatus == http.StatusCreated {
 				var resp DeckResponse
-				json.NewDecoder(rr.Body).Decode(&resp)
+				if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+					t.Error("Error decoding server response")
+				}
 				if resp.Shuffled != tc.expectedShuffled {
 					t.Errorf("service reports different shuffle stated, expected %v, got %v", tc.expectedShuffled, resp.Shuffled)
 				}
@@ -205,7 +207,9 @@ func TestHandleOpenDeck(t *testing.T) {
 
 			h := NewHandler(storage.NewInMemoryStorage())
 			mock := deck.NewDeck(fakeUUID, false, []string{"AS", "KD", "QH", "2C"})
-			h.st.SaveDeck(ctx, *mock)
+			if err := h.st.SaveDeck(ctx, *mock); err != nil {
+				t.Errorf("Error saving dummiy deck in storage")
+			}
 			expectedShuffled := mock.Shuffled
 			expectedRemaining := len(mock.Cards)
 
@@ -223,7 +227,9 @@ func TestHandleOpenDeck(t *testing.T) {
 
 			if tc.expectedStatus == http.StatusOK {
 				var response OpenDeckResponse
-				json.NewDecoder(rr.Body).Decode(&response)
+				if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
+					t.Error("Error decoding server response")
+				}
 				if response.DeckID != tc.deckID {
 					t.Errorf("got back wrong DeckID somehow, expected %s, got %s", tc.deckID, response.DeckID)
 				}
@@ -265,7 +271,9 @@ func TestHandleDrawCards(t *testing.T) {
 
 			h := NewHandler(storage.NewInMemoryStorage())
 			mock := deck.NewDeck(fakeUUID, false, []string{"AS", "KD", "QH", "2C"})
-			h.st.SaveDeck(ctx, *mock)
+			if err := h.st.SaveDeck(ctx, *mock); err != nil {
+				t.Error("Error saving dummy deck in storage")
+			}
 
 			requestBody := bytes.NewBuffer(nil)
 			req, _ := http.NewRequestWithContext(ctx, tc.method, "/decks/"+tc.deckID+"/draw?count="+tc.numCards, requestBody)
@@ -281,7 +289,9 @@ func TestHandleDrawCards(t *testing.T) {
 
 			if tc.expectedStatus == http.StatusOK {
 				var response DrawResponse
-				json.NewDecoder(rr.Body).Decode(&response)
+				if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
+					t.Error("Error decoding server response")
+				}
 				if len(response.Cards) != tc.expectedNumCards {
 					t.Errorf("expected %d cards, got %d", tc.expectedNumCards, len(response.Cards))
 				}

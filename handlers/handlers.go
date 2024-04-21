@@ -71,7 +71,10 @@ func (h *Handler) HandleCreateDeck(w http.ResponseWriter, r *http.Request) {
 
 	id := h.uuidGen()
 	d := deck.NewDeck(id, shuffle, cardCodes)
-	h.st.SaveDeck(r.Context(), *d)
+	err := h.st.SaveDeck(r.Context(), *d)
+	if err != nil {
+		http.Error(w, "Error saving created deck", http.StatusInternalServerError)
+	}
 	log.WithField("deck_id", d.ID).Debugf("Saving new deck")
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Location", "/decks/"+d.ID.String())
@@ -82,7 +85,9 @@ func (h *Handler) HandleCreateDeck(w http.ResponseWriter, r *http.Request) {
 		Shuffled:  d.Shuffled,
 		Remaining: len(d.Cards),
 	}
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // fetches the deck from the DeckStore and opens it
@@ -123,7 +128,9 @@ func (h *Handler) HandleOpenDeck(w http.ResponseWriter, r *http.Request) {
 		Cards:     d.Cards,
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // fetches the deck from the DeckStorage, draws cards, updates deck
@@ -152,7 +159,7 @@ func (h *Handler) HandleDrawCards(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	d, found := h.st.GetDeck(ctx, deckID)
 	if !found {
-		http.Error(w, fmt.Sprintf("Deck not found"), http.StatusNotFound)
+		http.Error(w, "Deck not found", http.StatusNotFound)
 		return
 	}
 
@@ -169,10 +176,15 @@ func (h *Handler) HandleDrawCards(w http.ResponseWriter, r *http.Request) {
 
 	log.Debugf("Drawing count=%v cards from deck", numCards)
 	drawnCards := d.Draw(numCards)
-	h.st.UpdateDeck(ctx, d)
+	err = h.st.UpdateDeck(ctx, d)
+	if err != nil {
+		http.Error(w, "Error updating deck in storage", http.StatusInternalServerError)
+	}
 	log.Debugf("Deck updated, new card count=%v", len(d.Cards))
 
 	response := DrawResponse{Cards: drawnCards}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

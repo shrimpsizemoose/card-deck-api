@@ -24,7 +24,9 @@ func TestNewInMemoryStorage(t *testing.T) {
 		ctx := context.Background()
 		go func() {
 			d := deck.NewDeck(uuid.New(), false, nil)
-			st.SaveDeck(ctx, *d)
+			if err := st.SaveDeck(ctx, *d); err != nil {
+				t.Errorf("Error saving deck")
+			}
 
 			wg.Done()
 		}()
@@ -59,8 +61,12 @@ func TestDeleteDeck(t *testing.T) {
 	id := uuid.New()
 	d := deck.NewDeck(id, false, nil)
 	ctx := context.Background()
-	s.SaveDeck(ctx, *d)
-	s.DeleteDeck(ctx, d.ID)
+	if err := s.SaveDeck(ctx, *d); err != nil {
+		t.Errorf("Error saving deck")
+	}
+	if err := s.DeleteDeck(ctx, d.ID); err != nil {
+		t.Errorf("Error deleting deck")
+	}
 	_, found := s.GetDeck(ctx, d.ID)
 	if found {
 		t.Errorf("Deck was found after deletion")

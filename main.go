@@ -24,9 +24,7 @@ func main() {
 		logrus.Debug("Logging debug output, run without DEBUG=1 to disable")
 	}
 
-	var st storage.DeckStorage
-	st = storage.NewInMemoryStorage()
-
+	st := storage.NewInMemoryStorage()
 	h := handlers.NewHandler(st)
 
 	port := os.Getenv("PORT")
@@ -39,5 +37,7 @@ func main() {
 	http.HandleFunc("POST /decks/{id}/draw", h.HandleDrawCards)
 
 	logrus.Infof("Listening on port %s", port)
-	http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil); err != nil {
+		logrus.Error("Failure in running card deck server")
+	}
 }
