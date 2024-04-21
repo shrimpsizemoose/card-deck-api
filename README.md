@@ -11,12 +11,21 @@ make @docker-build
 make @docker-run
 ```
 
-Makefile is set to serve on port 8088. The implementation uses in-memory storage and all decks would be lost on restart.
+Makefile is set to serve on port 8088. The implementation uses in-memory storage and all decks would be lost on restart. You can use additional make targets to interact with the service, like this:
+
+```bash
+make local-http-create-shuffled-deck  # creates a deck and returns deck_id
+DECK_ID=66960c43-c727-4e33-82da-ede4f204f484 make local-http-open-deck-jq
+DECK_ID=66960c43-c727-4e33-82da-ede4f204f484 make local-http-draw-deck-jq
+```
+
+If you don't have jq installed, the last two commands can be used as `local-http-open-deck` and `local-http-draw-deck` correspondingly
+
+## Card deck
 
 All cards are assumed to be from the deck of standard French 52-cards deck. It includes thirteen ranks in four suits: (♣), diamonds (♦), hearts (♥) and spades (♠). Jocker cards are not supported.
 
 For simplicity, all cards are coded with 2-3 characters string, like "KD" for "King of Diamonds", "AS" for "Ace of Spades", "10C" for "Ten of Clubs", and so on. When creating a card, user can provide subset of card codes, but unknown codes will be ignored.
-
 
 ## Endpoints
 
@@ -184,7 +193,7 @@ make @run-docker
 * More tests would be always nice to have, especially if external storage is used
 * Storage should happen in external system, that would help with state management and can help with consistency
 * For external storage one should use [singleflight](https://pkg.go.dev/golang.org/x/sync/singleflight) to help with parallel requests
-* Right now it would be annoying to add new cards or change deck types, that would require some refactoring if such thing is needed
+* Right now it would be annoying to add new cards or change deck types, that would require some refactoring if such thing is needed. Having smaller deck would work fine with current service, but adding different cards for example for [mus](https://en.wikipedia.org/wiki/Mus_(card_game)) would be challenging
 * Would probably check context handling, should add some timeouts and such, I've added it as afterthought once I made the storage package
 * I wanted to use stdlib as much as possible with exception of logrus, but for "realworld" logging I personally would probably use [uber-go/zap](https://github.com/uber-go/zap) instead of logrus. But I think logrus is more commonly used though (maybe?)
 
