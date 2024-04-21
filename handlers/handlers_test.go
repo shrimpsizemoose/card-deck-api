@@ -111,7 +111,7 @@ func TestHandleCreateDeck5CardNoShufflingSurprises(t *testing.T) {
 
 	for i, code := range cards {
 		if code != d.Cards[i].Code {
-			t.Errorf("Creting deck of cards differs in position %d. Expected %s got %s", i, code, d.Cards[i].Code)
+			t.Errorf("Creating deck of cards differs in position %d. Expected %s got %s", i, code, d.Cards[i].Code)
 		}
 	}
 
@@ -133,6 +133,8 @@ func TestHandleDeckCreate(t *testing.T) {
 		{"Can create unshuffled deck of 4 cards", "POST", "/decks/?shuffle=false&cards=AS,KD,QH,2C", http.StatusCreated, false, 4},
 		{"Can create implicitly unshuffled deck of 3 cards", "POST", "/decks/?cards=AS,KD,QH", http.StatusCreated, false, 3},
 		{"Can create shuffled deck of 52 cards", "POST", "/decks/?shuffle=true", http.StatusCreated, true, 52},
+		{"Can create unshuffled deck of 10 same cards", "POST", "/decks/?cards=AS,AS,AS,AS,AS,AS,AS,AS,AS,AS", http.StatusCreated, false, 10},
+		{"Unknown card codes are ignored", "POST", "/decks/?cards=AS,AS,AS,KH,KD,GG,IDDQD", http.StatusCreated, false, 5},
 		{"Defaults creates deck of 52 cards", "POST", "/decks/", http.StatusCreated, false, 52},
 	}
 

@@ -27,6 +27,8 @@ All cards are assumed to be from the deck of standard French 52-card deck. It in
 
 For simplicity, all cards are coded with a 2-3 characters string, like "KD" for "King of Diamonds", "AS" for "Ace of Spades", "10C" for "Ten of Clubs", and so on. The user can provide a subset of card codes when creating a card, but unknown codes will be ignored.
 
+The service does assumes anything about the deck you want to create, that is if you want a deck consisting of 20 Aces of hearts, the service would be happy to create it.
+
 ## Endpoints
 
 API provides parameters to Create card decks and Open and Draw cards from existing decks.
@@ -44,17 +46,29 @@ Creates a Deck of cards. By default, all 52 cards are used and the deck is creat
 | shuffle   | no       | whether the deck should be shuffled on creation          |
 | cards     | no       | optional list of card keys to use when creating the deck |
 
-When no parameters are provided, returns a deck consisting of 52 cards in sequential order
+When no parameters are provided, returns a deck consisting of 52 cards in sequential order. There's no duplication checks on the cards provides, but the card codes not in the deck would be ignored
 
 #### Example Success Response from `POST /decks/`
 
-**Code:** 200 OK
+**Code:** 201 CREATED
 
 ```json
 {
     "deck_id": "e13aaa48-2f62-4457-8c87-790cd856d536",
     "shuffled": "false",
     "remaining": 52,
+}
+```
+
+#### Example Success Response from `POST /decks/?shuffle=true,cards=AS,AS,AS,KH,KD,GG,IDDQD`
+
+**Code:** 201 CREATED
+
+```json
+{
+    "deck_id": "118a1a98-2fd2-44d9-83d2-b34fe4bd5230",
+    "shuffled": "false",
+    "remaining": 5,
 }
 ```
 
@@ -81,12 +95,12 @@ If the deck ID is wrong or the deck is not found, it would error with some statu
   "remaining": 2,
   "cards": [
     {
-      "value": "Q",
+      "value": "QUEEN",
       "suit": "Hearts",
       "code": "QH"
     },
     {
-      "value": "K",
+      "value": "KING",
       "suit": "Hearts",
       "code": "KH"
     },

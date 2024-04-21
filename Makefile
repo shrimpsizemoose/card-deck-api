@@ -41,6 +41,9 @@ lint:
 local-http-create-shuffled-deck:
 	curl -X POST http://localhost:${PORT}/decks/?shuffle=true
 
+local-http-create-10cards-unshuffled-deck:
+	curl -X POST 'http://localhost:${PORT}/decks/?shuffle=false&cards=AS,2S,3S,QS,KS,AC,2C,3C,AS,AS,IDDQD'
+
 local-http-open-deck:
 	@echo specify ID in env DECK_ID or directly hardcode like:
 	@echo 'curl -X GET http://localhost:${PORT}/decks/1b4a8074-3c3e-4d0b-bfd5-85ff38ea9d00'

@@ -55,17 +55,21 @@ func NewDeck(id uuid.UUID, shuffle bool, cardCodes []string) *Deck {
 }
 
 func generateFullDeck() []Card {
-	suits := []string{"Spades", "Clubs", "Diamonds", "Hearts"}
-	values := []string{"A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"}
+	suits := []string{"SPADES", "CLUBS", "DIAMONDS", "HEARTS"}
+	values := []string{"ACE", "2", "3", "4", "5", "6", "7", "8", "9", "10", "JACK", "QUEEN", "KING"}
 	var cards []Card
 
 	for _, suit := range suits {
 		for _, value := range values {
-			cards = append(cards, Card{
+			c := Card{
 				Value: value,
 				Suit:  suit,
-				Code:  value + suit[:1],
-			})
+				Code:  value[:1] + suit[:1],
+			}
+			if value == "10" { // 10 is a special case, but could use TEN instead
+				c.Code = "10" + suit[:1]
+			}
+			cards = append(cards, c)
 		}
 	}
 

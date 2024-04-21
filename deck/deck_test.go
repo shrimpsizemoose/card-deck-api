@@ -20,7 +20,7 @@ func TestNewDeckWithSpecificCards(t *testing.T) {
 	}
 	// ugly comparison
 	for _, card := range deck.Cards {
-		if !(card.Value == "A" && card.Suit == "Spades" || card.Suit == "Clubs") && !(card.Value == "K" && (card.Suit == "Diamonds" || card.Suit == "Hearts")) && !(card.Value == "2" && card.Suit == "Clubs") {
+		if !(card.Value == "ACE" && card.Suit == "SPADES" || card.Suit == "CLUBS") && !(card.Value == "KING" && (card.Suit == "DIAMONDS" || card.Suit == "HEARTS")) && !(card.Value == "2" && card.Suit == "CLUBS") {
 			t.Errorf("Unexpected card %v in deck", card)
 		}
 	}
