@@ -203,13 +203,16 @@ make @run-docker
 ## TODO (What would I do if I had more time)
 
 * I'm quite fond of Golang standard library, but I think some lib for marshaling would be helpful here, so I'd probably use _whatever the team is using_ or gin/negroni/chi
+* The handlers package looks very verbose with all that validation and type coercion, this would be very annoyng to work with when adding new handlers, so it would require refactoring for better flexibility in the future
 * Ratelimit would be nice if the service expected to handle some high traffic (let's say 100+ RPS), and there should be a way to manage storage timeouts
+* Once there's ratelimit, then there might be reasons to add things like auth and such to figure out per-account quotas
 * More tests would be always nice to have, especially if external storage is used
 * Storage should happen in an external system, which would help with state management and can help with consistency
 * For external storage one should use [singleflight](https://pkg.go.dev/golang.org/x/sync/singleflight) to help with parallel requests
 * It would be annoying to add new cards or change deck types, which would require some refactoring if such a thing is needed. Having a smaller deck would work fine with the current service, but adding different cards for example for [mus](https://en.wikipedia.org/wiki/Mus_(card_game)) would be challenging
 * Would probably use more context handling, adding timeouts and such. I've added it after once I made the storage package
 * I wanted to use stdlib as much as possible with the exception of logrus, but for "real-world" logging I would probably use [uber-go/zap](https://github.com/uber-go/zap) instead of logrus. I think logrus is more commonly used though (maybe?)
+* Again, this is more like my own implied limitation of writing a lean service with little amout of external libs, but currently there's no monitoring and likely in production it should have prometheus handler installed
 
 ### Extending storage
 
