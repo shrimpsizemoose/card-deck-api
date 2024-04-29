@@ -1,4 +1,4 @@
-# Card Deck Toggl take-home assignment
+# Card Deck T**** take-home assignment
 
 Implementation of REST API service to simulate a deck of cards.
 

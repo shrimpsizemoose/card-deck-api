@@ -1,6 +1,6 @@
 REGISTRY=ghcr.io
 NAMESPACE=shrimpsizemoose
-APP=toggl-card-service
+APP=toooo-card-service
 VERSION=0.1.0
 PORT=8088
 

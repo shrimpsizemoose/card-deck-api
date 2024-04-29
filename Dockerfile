@@ -24,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o main
 #####################################
 FROM scratch
 
-LABEL org.opencontainers.image.source https://github.com/shrimpsizemoose/toggl-card-deck-api
+LABEL org.opencontainers.image.source https://github.com/shrimpsizemoose/card-deck-api
 
 ARG PORT=8080
 ENV PORT=$PORT
